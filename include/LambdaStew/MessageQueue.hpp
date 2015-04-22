@@ -1,5 +1,5 @@
-#ifndef LAMDBASTEW_MESSAGEQUEUE
-#define LAMDBASTEW_MESSAGEQUEUE
+#ifndef LAMDBASTEW_MESSAGEQUEUE_HPP
+#define LAMDBASTEW_MESSAGEQUEUE_HPP
 
 #include "Log.hpp"
 #include "Signaler.hpp"
@@ -76,4 +76,4 @@ class MessageQueue
 };
 }
 
-#endif // LAMBDAQUEUE1
+#endif // LAMDBASTEW_MESSAGEQUEUE_HPP

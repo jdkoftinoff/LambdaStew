@@ -1,5 +1,5 @@
-#ifndef LOG_HPP
-#define LOG_HPP
+#ifndef LAMBDASTEW_LOG_HPP
+#define LAMBDASTEW_LOG_HPP
 
 #include <iostream>
 #include <sstream>
@@ -57,4 +57,4 @@ void log( FirstT &&first, RestT &&... rest )
 }
 }
 
-#endif // LOG_HPP
+#endif // LAMBDASTEW_LOG_HPP

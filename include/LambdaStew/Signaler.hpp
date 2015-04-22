@@ -1,5 +1,5 @@
-#ifndef SIGNALER_HPP
-#define SIGNALER_HPP
+#ifndef LAMBDASTEW_SIGNALER_HPP
+#define LAMBDASTEW_SIGNALER_HPP
 
 #include "Log.hpp"
 
@@ -59,4 +59,4 @@ class Signaler
 };
 }
 
-#endif // SIGNALER_HPP
+#endif // LAMBDASTEW_SIGNALER_HPP
