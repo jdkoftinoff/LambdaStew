@@ -18,7 +18,7 @@ using std::queue;
 using std::vector;
 using std::swap;
 
-class LambdaQueue
+class MessageQueue
 {
   public:
     ///

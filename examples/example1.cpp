@@ -60,7 +60,7 @@ void consumer_blue( std::string from )
     }
 }
 
-void consumer_thread( string name, LambdaQueue *q, std::atomic_bool *ender )
+void consumer_thread( string name, MessageQueue *q, std::atomic_bool *ender )
 {
     log( name, " thread: ", std::this_thread::get_id() );
 
@@ -98,7 +98,7 @@ void consumer_thread( string name, LambdaQueue *q, std::atomic_bool *ender )
     }
 }
 
-void producer_a( string name, LambdaQueue *q, std::atomic_bool *ender )
+void producer_a( string name, MessageQueue *q, std::atomic_bool *ender )
 {
     log( name, " thread: ", std::this_thread::get_id() );
 
@@ -127,7 +127,7 @@ void producer_a( string name, LambdaQueue *q, std::atomic_bool *ender )
     }
 }
 
-void producer_b( string name, LambdaQueue *q, std::atomic_bool *ender )
+void producer_b( string name, MessageQueue *q, std::atomic_bool *ender )
 {
     log( name, " thread: ", std::this_thread::get_id() );
 
@@ -168,7 +168,7 @@ int main( int argc, char *argv[] )
     (void)argc;
     (void)argv;
 
-    LambdaQueue q;
+    MessageQueue q;
     std::atomic_bool ender;
     ender.store( false );
 

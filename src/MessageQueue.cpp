@@ -1,6 +1,6 @@
 #include "LambdaStew/MessageQueue.hpp"
 
-int LambdaStew::LambdaQueue::invoke()
+int LambdaStew::MessageQueue::invoke()
 {
     // The count of functions called
     int count = 0;
@@ -48,13 +48,13 @@ int LambdaStew::LambdaQueue::invoke()
     return count;
 }
 
-bool LambdaStew::LambdaQueue::empty() const
+bool LambdaStew::MessageQueue::empty() const
 {
     lock_guard<mutex> guard( m_items_mutex );
     return m_items.empty();
 }
 
-void LambdaStew::LambdaQueue::push_back( function<void()> func )
+void LambdaStew::MessageQueue::push_back( function<void()> func )
 {
     lock_guard<mutex> guard( m_items_mutex );
     m_items.push( func );
