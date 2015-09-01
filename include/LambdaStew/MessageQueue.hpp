@@ -18,9 +18,35 @@ using std::queue;
 using std::vector;
 using std::swap;
 
+///
+/// \brief The MessageQueue class
+///
 class MessageQueue
 {
   public:
+    struct PleaseStopException
+    {
+    };
+
+    ///
+    /// \brief make_please_stop_item
+    ///
+    /// Creates a lambda that when added to the MessageQueue and processed
+    /// will cause the thread to cleanly exit
+    ///
+    /// \return function which throws an appropriate exception to trigger end of
+    /// thread
+    ///
+    std::function<void()> make_please_stop_item() const;
+
+    ///
+    /// \brief push_back_please_stop
+    ///
+    /// Put a 'please_stop' item into the queue to ask all consumers to stop
+    /// processing cleanly
+    ///
+    void push_back_please_stop();
+
     ///
     /// \brief operator ()
     ///
@@ -66,12 +92,36 @@ class MessageQueue
         m_items.pop();
     }
 
+    ///
+    /// \brief signaler
+    ///
+    /// get the signaller for the queue
+    ///
+    /// \return A Reference to the Signaler object
+    ///
     Signaler &signaler() { return m_signaler; }
 
   private:
+    ///
+    /// \brief m_items
+    ///
+    /// The queue of functions to executed in a different thread context
+    ///
     queue<function<void()> > m_items;
+
+    ///
+    /// \brief m_items_mutex
+    ///
+    /// The mutex for the function queue
+    ///
     mutable mutex m_items_mutex;
 
+    ///
+    /// \brief m_signaler
+    ///
+    /// The signaler used to wake up any threads waiting for an item
+    /// to be added to the queue
+    ///
     Signaler m_signaler;
 };
 }

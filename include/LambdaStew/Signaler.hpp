@@ -13,15 +13,28 @@ using std::lock_guard;
 using std::unique_lock;
 using std::condition_variable;
 
+///
+/// \brief The Signaler class
+///
+/// Allows signalling between threads with atomic counting
+///
 class Signaler
 {
   public:
     using signal_count_type = uint32_t;
 
+    ///
+    /// \brief get_count
+    ///
+    /// Get the current count of signals sent
+    ///
+    /// \return unsigned count of number of signals sent
+    ///
     signal_count_type get_count() const;
 
     ///
     /// \brief send_signal
+    ///
     /// Use the condition variable to signal all threads waiting on it
     ///
     void send_signal();

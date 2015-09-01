@@ -60,7 +60,7 @@ void consumer_blue( std::string from )
     }
 }
 
-void consumer_thread( string name, MessageQueue *q, std::atomic_bool *ender )
+void consumer_thread( string name, MessageQueue *q )
 {
     log( name, " thread: ", std::this_thread::get_id() );
 
@@ -69,7 +69,7 @@ void consumer_thread( string name, MessageQueue *q, std::atomic_bool *ender )
     // Consume until the ender flag is set
     try
     {
-        while ( !ender->load() )
+        while ( true )
         {
             // if the queue is empty, wait for up to 100ms
             if ( q->empty() )
@@ -87,6 +87,11 @@ void consumer_thread( string name, MessageQueue *q, std::atomic_bool *ender )
             }
         }
     }
+    catch ( MessageQueue::PleaseStopException )
+    {
+        log( name, " thread: ", "Asked to stop" );
+        throw;
+    }
     catch ( const std::exception &e )
     {
         log( name,
@@ -98,28 +103,27 @@ void consumer_thread( string name, MessageQueue *q, std::atomic_bool *ender )
     }
 }
 
-void producer_a( string name, MessageQueue *q, std::atomic_bool *ender )
+void producer_a( string name, MessageQueue *q )
 {
     log( name, " thread: ", std::this_thread::get_id() );
 
     for ( int i = 0; i < 100; ++i )
     {
-        if ( ender->load() )
-        {
-            break;
-        }
         std::this_thread::sleep_for( std::chrono::milliseconds( 150 ) );
 
+        log( name, " thread: ", std::this_thread::get_id(), " pushing red" );
         q->push_back( [name]()
                       {
                           consumer_red( "from " + name );
                       } );
         std::this_thread::sleep_for( std::chrono::milliseconds( 180 ) );
+        log( name, " thread: ", std::this_thread::get_id(), " pushing green" );
         q->push_back( [name]()
                       {
                           consumer_green( "from " + name );
                       } );
         std::this_thread::sleep_for( std::chrono::milliseconds( 300 ) );
+        log( name, " thread: ", std::this_thread::get_id(), " pushing blue" );
         q->push_back( [name]()
                       {
                           consumer_blue( "from " + name );
@@ -127,39 +131,30 @@ void producer_a( string name, MessageQueue *q, std::atomic_bool *ender )
     }
 }
 
-void producer_b( string name, MessageQueue *q, std::atomic_bool *ender )
+void producer_b( string name, MessageQueue *q )
 {
     log( name, " thread: ", std::this_thread::get_id() );
 
     for ( int i = 0; i < 100; ++i )
     {
-        if ( ender->load() )
-        {
-            break;
-        }
         std::this_thread::sleep_for( std::chrono::milliseconds( 75 ) );
-
+        log( name, " thread: ", std::this_thread::get_id(), " pushing red" );
         q->push_back( [name]()
                       {
                           consumer_red( "from " + name );
                       } );
         std::this_thread::sleep_for( std::chrono::milliseconds( 90 ) );
+        log( name, " thread: ", std::this_thread::get_id(), " pushing green" );
         q->push_back( [name]()
                       {
                           consumer_green( "from " + name );
                       } );
         std::this_thread::sleep_for( std::chrono::milliseconds( 150 ) );
+        log( name, " thread: ", std::this_thread::get_id(), " pushing blue" );
         q->push_back( [name]()
                       {
                           consumer_blue( "from " + name );
                       } );
-
-        if ( i == 20 )
-        {
-            log( name, " ending things" );
-            ender->store( true );
-            q->signaler().send_signal();
-        }
     }
 }
 
@@ -169,29 +164,28 @@ int main( int argc, char *argv[] )
     (void)argv;
 
     MessageQueue q;
-    std::atomic_bool ender;
-    ender.store( false );
 
-    auto consumer1 = std::async(
-        std::launch::async, consumer_thread, "Consumer1", &q, &ender );
-    auto consumer2 = std::async(
-        std::launch::async, consumer_thread, "Consumer2", &q, &ender );
-    auto consumer3 = std::async(
-        std::launch::async, consumer_thread, "Consumer3", &q, &ender );
-    auto consumer4 = std::async(
-        std::launch::async, consumer_thread, "Consumer4", &q, &ender );
-    auto producerA1 = std::async(
-        std::launch::async, producer_a, "ProducerA1", &q, &ender );
-    auto producerB1 = std::async(
-        std::launch::async, producer_b, "ProducerB1", &q, &ender );
-    auto producerA2 = std::async(
-        std::launch::async, producer_a, "ProducerA2", &q, &ender );
+    auto consumer1
+        = std::async( std::launch::async, consumer_thread, "Consumer1", &q );
+    auto consumer2
+        = std::async( std::launch::async, consumer_thread, "Consumer2", &q );
+    auto consumer3
+        = std::async( std::launch::async, consumer_thread, "Consumer3", &q );
+    auto consumer4
+        = std::async( std::launch::async, consumer_thread, "Consumer4", &q );
+    auto producerA1
+        = std::async( std::launch::async, producer_a, "ProducerA1", &q );
+    auto producerB1
+        = std::async( std::launch::async, producer_b, "ProducerB1", &q );
+    auto producerA2
+        = std::async( std::launch::async, producer_a, "ProducerA2", &q );
 
     producerA1.wait();
     producerB1.wait();
     producerA2.wait();
-    ender.store( true );
-    q.signaler().send_signal();
+
+    q.push_back_please_stop();
+
     consumer1.wait();
     consumer2.wait();
     consumer3.wait();

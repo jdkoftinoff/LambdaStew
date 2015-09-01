@@ -1,6 +1,22 @@
 #include "LambdaStew/MessageQueue.hpp"
 
-int LambdaStew::MessageQueue::invoke()
+namespace LambdaStew
+{
+
+std::function<void()> MessageQueue::make_please_stop_item() const
+{
+    return []()
+    {
+        throw PleaseStopException();
+    };
+}
+
+void MessageQueue::push_back_please_stop()
+{
+    push_back( make_please_stop_item() );
+}
+
+int MessageQueue::invoke()
 {
     // The count of functions called
     int count = 0;
@@ -27,11 +43,30 @@ int LambdaStew::MessageQueue::invoke()
             ++count;
         }
     }
+    catch ( PleaseStopException )
+    {
+        // The message was to shut down the thread
+        log( "MessageQueue::invoke() asked to end thread via "
+             "PleaseStopException" );
+        // do not pop the item off the queue, all consumer threads need it
+        {
+            /// Copy any new pending items to the queue
+            lock_guard<mutex> guard( m_items_mutex );
+            swap( items_to_execute, m_items );
+            while ( !items_to_execute.empty() )
+            {
+                m_items.push( items_to_execute.front() );
+                items_to_execute.pop();
+            }
+        }
+        // Re-throw PleaseStopException
+        throw;
+    }
     catch ( std::exception const &e )
     {
-        /// An exception happened during the call
-        /// log the exception info
-        log( "LambdaQueue::invoke() caught exception: ", e.what() );
+        // An exception happened during the call
+        // log the exception info
+        log( "MessageQueue::invoke() caught exception: ", e.what() );
         items_to_execute.pop();
 
         {
@@ -48,15 +83,16 @@ int LambdaStew::MessageQueue::invoke()
     return count;
 }
 
-bool LambdaStew::MessageQueue::empty() const
+bool MessageQueue::empty() const
 {
     lock_guard<mutex> guard( m_items_mutex );
     return m_items.empty();
 }
 
-void LambdaStew::MessageQueue::push_back( function<void()> func )
+void MessageQueue::push_back( function<void()> func )
 {
     lock_guard<mutex> guard( m_items_mutex );
     m_items.push( func );
     signaler().send_signal();
+}
 }
