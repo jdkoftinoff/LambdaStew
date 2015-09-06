@@ -46,8 +46,9 @@ int MessageQueue::invoke()
     catch ( PleaseStopException )
     {
         // The message was to shut down the thread
-        log( "MessageQueue::invoke() asked to end thread via "
-             "PleaseStopException" );
+        log_info(
+            "MessageQueue::invoke() asked to end thread via "
+            "PleaseStopException" );
         // do not pop the item off the queue, all consumer threads need it
         {
             /// Copy any new pending items to the queue
@@ -66,7 +67,7 @@ int MessageQueue::invoke()
     {
         // An exception happened during the call
         // log the exception info
-        log( "MessageQueue::invoke() caught exception: ", e.what() );
+        log_info( "MessageQueue::invoke() caught exception: ", e.what() );
         items_to_execute.pop();
 
         {
