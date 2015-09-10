@@ -16,7 +16,7 @@ void MessageQueue::push_back_please_stop()
     push_back( make_please_stop_item() );
 }
 
-int MessageQueue::invoke()
+int MessageQueue::invoke_all()
 {
     // The count of functions called
     int count = 0;
@@ -43,11 +43,11 @@ int MessageQueue::invoke()
             ++count;
         }
     }
-    catch ( PleaseStopException )
+    catch ( PleaseStopException const &e )
     {
         // The message was to shut down the thread
         log_info(
-            "MessageQueue::invoke() asked to end thread via "
+            "MessageQueue::invoke_all() asked to end thread via "
             "PleaseStopException" );
         // do not pop the item off the queue, all consumer threads need it
         {
@@ -59,6 +59,10 @@ int MessageQueue::invoke()
                 m_items.push( items_to_execute.front() );
                 items_to_execute.pop();
             }
+            if ( !m_items.empty() )
+            {
+                m_signaler.send_signal();
+            }
         }
         // Re-throw PleaseStopException
         throw;
@@ -67,7 +71,7 @@ int MessageQueue::invoke()
     {
         // An exception happened during the call
         // log the exception info
-        log_info( "MessageQueue::invoke() caught exception: ", e.what() );
+        log_info( "MessageQueue::invoke_all() caught exception: ", e.what() );
         items_to_execute.pop();
 
         {
@@ -78,6 +82,10 @@ int MessageQueue::invoke()
             {
                 m_items.push( items_to_execute.front() );
                 items_to_execute.pop();
+            }
+            if ( !m_items.empty() )
+            {
+                m_signaler.send_signal();
             }
         }
         // Re-throw the exception
@@ -86,7 +94,7 @@ int MessageQueue::invoke()
     catch ( ... )
     {
         // An unknown exception
-        log_info( "MessageQueue::invoke() caught exception" );
+        log_info( "MessageQueue::invoke_all() caught exception" );
         items_to_execute.pop();
         {
             /// Copy any new pending items to the queue
@@ -97,12 +105,68 @@ int MessageQueue::invoke()
                 m_items.push( items_to_execute.front() );
                 items_to_execute.pop();
             }
+            if ( !m_items.empty() )
+            {
+                m_signaler.send_signal();
+            }
         }
         // Re-throw the exception
         throw;
     }
 
     return count;
+}
+
+void MessageQueue::invoke()
+{
+    // get the item to execute
+
+    function<void()> item_to_execute;
+
+    {
+        lock_guard<mutex> guard( m_items_mutex );
+        if ( m_items.size() > 0 )
+        {
+            item_to_execute = m_items.front();
+            m_items.pop();
+        }
+    }
+
+    if ( item_to_execute )
+    {
+        try
+        {
+            item_to_execute();
+        }
+        catch ( PleaseStopException const &e )
+        {
+            // The message was to shut down the thread
+            log_info(
+                "MessageQueue::invoke() asked to end thread via "
+                "PleaseStopException" );
+            // put the item back on the item list for other threads to receive
+
+            push_back( item_to_execute );
+            // re-throw
+            throw;
+        }
+        catch ( std::exception const &e )
+        {
+            // An exception happened during the call
+            // log the exception info
+            log_info( "MessageQueue::invoke() caught exception: ", e.what() );
+
+            // Re-throw the exception
+            throw;
+        }
+        catch ( ... )
+        {
+            // An unknown exception
+            log_info( "MessageQueue::invoke() caught exception" );
+            // Re-throw the exception
+            throw;
+        }
+    }
 }
 
 bool MessageQueue::empty() const
@@ -115,6 +179,11 @@ void MessageQueue::push_back( function<void()> func )
 {
     lock_guard<mutex> guard( m_items_mutex );
     m_items.push( func );
-    signaler().send_signal();
+    // send the signal to waiting threads only if the number of items
+    // transitioned from 0 to 1
+    if ( m_items.size() == 1 )
+    {
+        signaler().send_signal();
+    }
 }
 }

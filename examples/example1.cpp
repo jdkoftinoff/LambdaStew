@@ -60,7 +60,7 @@ void consumer_blue( std::string from )
     }
 }
 
-void consumer_thread( string name, MessageQueue *q )
+void consumer_thread( string name, MessageQueue *q, bool consume_all )
 {
     log_info( name, " thread: ", std::this_thread::get_id() );
 
@@ -79,9 +79,18 @@ void consumer_thread( string name, MessageQueue *q )
                     last_signal_count, std::chrono::milliseconds( 10000 ) );
             }
 
-            // if the queue is not empty, invoke all the functions
-            // in the queue, skipping any that caused exceptions
-            if ( !q->empty() )
+            if ( consume_all )
+            {
+                // if the queue is not empty, invoke all the functions in the
+                // queue
+                if ( !q->empty() )
+                {
+                    int count = q->invoke_all();
+                    // sometimes count is 0 because another thread beat us to it
+                    log_info( name, " invoked: ", count );
+                }
+            }
+            else
             {
                 q->invoke();
             }
@@ -186,14 +195,14 @@ int main( int argc, char *argv[] )
 
     MessageQueue q;
 
-    auto consumer1
-        = std::async( std::launch::async, consumer_thread, "Consumer1", &q );
-    auto consumer2
-        = std::async( std::launch::async, consumer_thread, "Consumer2", &q );
-    auto consumer3
-        = std::async( std::launch::async, consumer_thread, "Consumer3", &q );
-    auto consumer4
-        = std::async( std::launch::async, consumer_thread, "Consumer4", &q );
+    auto consumer1 = std::async(
+        std::launch::async, consumer_thread, "Consumer1", &q, false );
+    auto consumer2 = std::async(
+        std::launch::async, consumer_thread, "Consumer2", &q, false );
+    auto consumer3 = std::async(
+        std::launch::async, consumer_thread, "Consumer3", &q, false );
+    auto consumer4 = std::async(
+        std::launch::async, consumer_thread, "Consumer4", &q, true );
     auto producerA1
         = std::async( std::launch::async, producer_a, "ProducerA1", &q );
     auto producerB1

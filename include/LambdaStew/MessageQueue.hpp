@@ -54,16 +54,23 @@ class MessageQueue
     ///
     /// \return count of functions invoked
     ///
-    int operator()() { return invoke(); }
+    int operator()() { return invoke_all(); }
 
     ///
-    /// \brief operator ()
+    /// \brief invoke_all ()
     ///
     /// Call all functions in the queue and remove them
     ///
     /// \return count of functions invoked
     ///
-    int invoke();
+    int invoke_all();
+
+    ///
+    /// \brief invoke
+    ///
+    /// Call one function from the queue and remove it
+    ///
+    void invoke();
 
     ///
     /// \brief empty
