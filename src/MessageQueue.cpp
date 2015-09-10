@@ -80,7 +80,28 @@ int MessageQueue::invoke()
                 items_to_execute.pop();
             }
         }
+        // Re-throw the exception
+        throw;
     }
+    catch ( ... )
+    {
+        // An unknown exception
+        log_info( "MessageQueue::invoke() caught exception" );
+        items_to_execute.pop();
+        {
+            /// Copy any new pending items to the queue
+            lock_guard<mutex> guard( m_items_mutex );
+            swap( items_to_execute, m_items );
+            while ( !items_to_execute.empty() )
+            {
+                m_items.push( items_to_execute.front() );
+                items_to_execute.pop();
+            }
+        }
+        // Re-throw the exception
+        throw;
+    }
+
     return count;
 }
 
