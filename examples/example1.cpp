@@ -60,7 +60,7 @@ void consumer_blue( std::string from )
     }
 }
 
-void consumer_thread( string name, MessageQueue *q, bool consume_all )
+void consumer_thread( string name, MessageQueue &q, bool consume_all )
 {
     log_info( name, " thread: ", std::this_thread::get_id() );
 
@@ -72,10 +72,10 @@ void consumer_thread( string name, MessageQueue *q, bool consume_all )
         while ( true )
         {
             // if the queue is empty, wait for up to 100ms
-            if ( q->empty() )
+            if ( q.empty() )
             {
                 log_info( name, " waiting: ", std::this_thread::get_id() );
-                last_signal_count = q->signaler().wait_for_signal_for(
+                last_signal_count = q.signaler().wait_for_signal_for(
                     last_signal_count, std::chrono::milliseconds( 10000 ) );
             }
 
@@ -83,16 +83,16 @@ void consumer_thread( string name, MessageQueue *q, bool consume_all )
             {
                 // if the queue is not empty, invoke all the functions in the
                 // queue
-                if ( !q->empty() )
+                if ( !q.empty() )
                 {
-                    int count = q->invoke_all();
+                    int count = q.invoke_all();
                     // sometimes count is 0 because another thread beat us to it
                     log_info( name, " invoked: ", count );
                 }
             }
             else
             {
-                q->invoke();
+                q.invoke();
             }
         }
     }
@@ -112,7 +112,7 @@ void consumer_thread( string name, MessageQueue *q, bool consume_all )
     }
 }
 
-void producer_a( string name, MessageQueue *q )
+void producer_a( string name, MessageQueue &q )
 {
     log_info( name, " thread: ", std::this_thread::get_id() );
 
@@ -122,28 +122,28 @@ void producer_a( string name, MessageQueue *q )
 
         log_info(
             name, " thread: ", std::this_thread::get_id(), " pushing red" );
-        q->push_back( [name]()
-                      {
-                          consumer_red( "from " + name );
-                      } );
+        q.push_back( [name]()
+                     {
+                         consumer_red( "from " + name );
+                     } );
         std::this_thread::sleep_for( std::chrono::milliseconds( 180 ) );
         log_info(
             name, " thread: ", std::this_thread::get_id(), " pushing green" );
-        q->push_back( [name]()
-                      {
-                          consumer_green( "from " + name );
-                      } );
+        q.push_back( [name]()
+                     {
+                         consumer_green( "from " + name );
+                     } );
         std::this_thread::sleep_for( std::chrono::milliseconds( 300 ) );
         log_info(
             name, " thread: ", std::this_thread::get_id(), " pushing blue" );
-        q->push_back( [name]()
-                      {
-                          consumer_blue( "from " + name );
-                      } );
+        q.push_back( [name]()
+                     {
+                         consumer_blue( "from " + name );
+                     } );
     }
 }
 
-void producer_b( string name, MessageQueue *q )
+void producer_b( string name, MessageQueue &q )
 {
     log_info( name, " thread: ", std::this_thread::get_id() );
 
@@ -152,24 +152,24 @@ void producer_b( string name, MessageQueue *q )
         std::this_thread::sleep_for( std::chrono::milliseconds( 75 ) );
         log_info(
             name, " thread: ", std::this_thread::get_id(), " pushing red" );
-        q->push_back( [name]()
-                      {
-                          consumer_red( "from " + name );
-                      } );
+        q.push_back( [name]()
+                     {
+                         consumer_red( "from " + name );
+                     } );
         std::this_thread::sleep_for( std::chrono::milliseconds( 90 ) );
         log_info(
             name, " thread: ", std::this_thread::get_id(), " pushing green" );
-        q->push_back( [name]()
-                      {
-                          consumer_green( "from " + name );
-                      } );
+        q.push_back( [name]()
+                     {
+                         consumer_green( "from " + name );
+                     } );
         std::this_thread::sleep_for( std::chrono::milliseconds( 150 ) );
         log_info(
             name, " thread: ", std::this_thread::get_id(), " pushing blue" );
-        q->push_back( [name]()
-                      {
-                          consumer_blue( "from " + name );
-                      } );
+        q.push_back( [name]()
+                     {
+                         consumer_blue( "from " + name );
+                     } );
     }
 }
 
@@ -195,20 +195,29 @@ int main( int argc, char *argv[] )
 
     MessageQueue q;
 
-    auto consumer1 = std::async(
-        std::launch::async, consumer_thread, "Consumer1", &q, false );
-    auto consumer2 = std::async(
-        std::launch::async, consumer_thread, "Consumer2", &q, false );
-    auto consumer3 = std::async(
-        std::launch::async, consumer_thread, "Consumer3", &q, false );
+    auto consumer1 = std::async( std::launch::async,
+                                 consumer_thread,
+                                 "Consumer1",
+                                 std::ref( q ),
+                                 false );
+    auto consumer2 = std::async( std::launch::async,
+                                 consumer_thread,
+                                 "Consumer2",
+                                 std::ref( q ),
+                                 false );
+    auto consumer3 = std::async( std::launch::async,
+                                 consumer_thread,
+                                 "Consumer3",
+                                 std::ref( q ),
+                                 false );
     auto consumer4 = std::async(
-        std::launch::async, consumer_thread, "Consumer4", &q, true );
-    auto producerA1
-        = std::async( std::launch::async, producer_a, "ProducerA1", &q );
-    auto producerB1
-        = std::async( std::launch::async, producer_b, "ProducerB1", &q );
-    auto producerA2
-        = std::async( std::launch::async, producer_a, "ProducerA2", &q );
+        std::launch::async, consumer_thread, "Consumer4", std::ref( q ), true );
+    auto producerA1 = std::async(
+        std::launch::async, producer_a, "ProducerA1", std::ref( q ) );
+    auto producerB1 = std::async(
+        std::launch::async, producer_b, "ProducerB1", std::ref( q ) );
+    auto producerA2 = std::async(
+        std::launch::async, producer_a, "ProducerA2", std::ref( q ) );
 
     log_debug( "Waiting for producerA1" );
     producerA1.wait();
