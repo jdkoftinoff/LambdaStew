@@ -48,29 +48,11 @@ class MessageQueue
     void push_back_please_stop();
 
     ///
-    /// \brief operator ()
-    ///
-    /// Call all functions in the queue and remove them
-    ///
-    /// \return count of functions invoked
-    ///
-    int operator()() { return invoke_all(); }
-
-    ///
-    /// \brief invoke_all ()
-    ///
-    /// Call all functions in the queue and remove them
-    ///
-    /// \return count of functions invoked
-    ///
-    int invoke_all();
-
-    ///
     /// \brief invoke
     ///
     /// Call one function from the queue and remove it
     ///
-    void invoke();
+    bool invoke();
 
     ///
     /// \brief empty
@@ -107,6 +89,8 @@ class MessageQueue
     /// \return A Reference to the Signaler object
     ///
     Signaler &signaler() { return m_signaler; }
+
+    size_t size() const;
 
   private:
     ///
