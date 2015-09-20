@@ -54,6 +54,21 @@ bool log_warning_enable( bool set, bool new_value )
     return r;
 }
 
+bool log_trace_enable( bool set, bool new_value )
+{
+    static std::atomic<bool> current_value( false );
+
+    bool r = current_value;
+
+    if ( set )
+    {
+        current_value.store( new_value );
+        r = new_value;
+    }
+
+    return r;
+}
+
 bool log_debug_enable( bool set, bool new_value )
 {
     static std::atomic<bool> current_value( false );

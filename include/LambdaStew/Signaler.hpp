@@ -33,11 +33,39 @@ class Signaler
     signal_count_type get_count() const;
 
     ///
-    /// \brief send_signal
+    /// \brief send_signal_all
     ///
     /// Use the condition variable to signal all threads waiting on it
     ///
-    void send_signal();
+    void send_signal_all();
+
+    ///
+    /// \brief send_signal_one
+    ///
+    /// Use the condition variable to signal only one thread waiting on it
+    ///
+    void send_signal_one();
+
+    ///
+    /// \brief send_signal
+    ///
+    /// Use the condition variable to signal either all or one thread
+    /// waiting on it, depending on value of notify_all parameter
+    ///
+    /// \param notify_all bool true to notify all threads, false to notify only
+    /// one
+    ///
+    void send_signal( bool notify_all )
+    {
+        if ( notify_all )
+        {
+            send_signal_all();
+        }
+        else
+        {
+            send_signal_one();
+        }
+    }
 
     ///
     /// \brief wait_for_signal

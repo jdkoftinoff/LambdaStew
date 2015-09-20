@@ -42,6 +42,17 @@ ostream &print( ostream &dest, FirstT &&first, RestT &&... rest )
     return print( dest, rest... );
 }
 
+///
+/// template helper function to print a list of parameters to a string
+///
+template <typename... FirstT>
+std::string print_to_string( FirstT &&... args )
+{
+    std::ostringstream ostr;
+    print( ostr, args... );
+    return ostr.str();
+}
+
 /// \brief log_mutex
 ///
 /// Get a reference to the single mutex used for logging
@@ -55,6 +66,8 @@ std::ostream *log_ostream( bool set = false, std::ostream *o = &std::clog );
 bool log_error_enable( bool set = false, bool new_value = true );
 
 bool log_warning_enable( bool set = false, bool new_value = true );
+
+bool log_trace_enable( bool set = false, bool new_value = true );
 
 bool log_debug_enable( bool set = false, bool new_value = true );
 
@@ -111,6 +124,33 @@ void log_info( FirstT &&first, RestT &&... rest )
         {
             lock_guard<mutex> guard( log_mutex() );
             print( *log_ostream(), "INFO   :", first, rest... ) << std::endl;
+        }
+    }
+}
+
+/// log_trace
+///
+/// print a list of parameters to the log file as
+/// a trace (debug) line
+///
+template <typename FirstT, typename... RestT>
+void log_trace( FirstT &&first, RestT &&... rest )
+{
+    if ( log_trace_enable() )
+    {
+#ifdef ENABLE_SYSLOG
+        if ( log_to_syslog() )
+        {
+            std::stringstream o;
+            print( o, first, rest... );
+            lock_guard<mutex> guard( log_mutex() );
+            syslog( LOG_DEBUG, "%s", o.str().c_str() );
+        }
+        else
+#endif
+        {
+            lock_guard<mutex> guard( log_mutex() );
+            print( *log_ostream(), "trace  :", first, rest... ) << std::endl;
         }
     }
 }

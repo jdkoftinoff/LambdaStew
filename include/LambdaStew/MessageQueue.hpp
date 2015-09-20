@@ -67,8 +67,10 @@ class MessageQueue
     /// Add item to the queue
     ///
     /// \param func callable function which takes no parameters and returns void
+    /// \param notify_all bool set to true to wake all threads, false to wake
+    /// only one
     ///
-    void push_back( function<void()> func );
+    void push_back( function<void()> func, bool notify_all = false );
 
     ///
     /// \brief skip_next

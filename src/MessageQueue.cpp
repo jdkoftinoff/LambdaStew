@@ -13,7 +13,8 @@ std::function<void()> MessageQueue::make_please_stop_item() const
 
 void MessageQueue::push_back_please_stop()
 {
-    push_back( make_please_stop_item() );
+    // Notify all waiting threads to consume this function
+    push_back( make_please_stop_item(), true );
 }
 
 bool MessageQueue::invoke()
@@ -81,7 +82,7 @@ bool MessageQueue::empty() const
     return m_items.empty();
 }
 
-void MessageQueue::push_back( function<void()> func )
+void MessageQueue::push_back( function<void()> func, bool notify_all )
 {
     lock_guard<mutex> guard( m_items_mutex );
     m_items.push( func );
@@ -89,7 +90,7 @@ void MessageQueue::push_back( function<void()> func )
     // transitioned from 0 to 1
     if ( m_items.size() == 1 )
     {
-        signaler().send_signal();
+        signaler().send_signal( notify_all );
     }
 }
 

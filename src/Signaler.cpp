@@ -9,11 +9,18 @@ Signaler::signal_count_type Signaler::get_count() const
     return m_signal_count;
 }
 
-void Signaler::send_signal()
+void Signaler::send_signal_all()
 {
     unique_lock<mutex> guard( m_cv_mutex );
     ++m_signal_count;
     m_cv.notify_all();
+}
+
+void Signaler::send_signal_one()
+{
+    unique_lock<mutex> guard( m_cv_mutex );
+    ++m_signal_count;
+    m_cv.notify_one();
 }
 
 Signaler::signal_count_type Signaler::wait_for_signal(
