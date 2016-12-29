@@ -11,17 +11,14 @@ std::mutex &log_mutex()
 
 std::ostream *log_ostream( bool set, std::ostream *o )
 {
-    static mutex m;
-    lock_guard<mutex> guard( m );
-
-    ostream *output_stream = &std::clog;
+    static std::atomic<ostream *> output_stream = &std::clog;
 
     if ( set )
     {
-        output_stream = o;
+        output_stream.store( o );
     }
 
-    return output_stream;
+    return output_stream.load();
 }
 
 bool log_error_enable( bool set, bool new_value )
@@ -134,13 +131,15 @@ bool log_crit_enable( bool set, bool new_value )
 bool log_to_syslog(
     bool set, bool new_value, const char *ident, int logopt, int facility )
 {
-    static std::atomic_bool current_value;
+    lock_guard<mutex> guard( log_mutex() );
+
+    static std::atomic<bool> current_value( false );
 
     bool r = current_value;
 
     if ( set )
     {
-        if ( current_value )
+        if ( r )
         {
             closelog();
         }
