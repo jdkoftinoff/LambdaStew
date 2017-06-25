@@ -11,7 +11,7 @@ std::mutex &log_mutex()
 
 std::ostream *log_ostream( bool set, std::ostream *o )
 {
-    static std::atomic<ostream *> output_stream = &std::clog;
+    static std::atomic<ostream *> output_stream{&std::clog};
 
     if ( set )
     {
